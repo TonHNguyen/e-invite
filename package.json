@@ -2,17 +2,26 @@
   "name": "tailwind-css",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tailwindcss -i src/input-style.css -o public/output-style.css",
-    "watch": "tailwindcss -i src/input-style.css -o public/output-style.css --watch"
+    "watch": "tailwindcss -i src/input-style.css -o public/output-style.css --watch",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.1"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
+    "nodemon": "^3.1.10",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.17"
   }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/output-style.css">
+    
+    <title>Xoai Birthday Invitation</title>
+</head>
+
+<body>
+
+    <div class="border border-green-500 min-h-screen bg-[#F2EFDE]">
+        <div class="h-screen border border-red-500 mx-5 mt-5 flex flex-col items-center space-y-5">
+            <img src="/picture/MyInvitation.jpeg" class="h-[80% w-auto]" alt="">
+            <div>
+                <p>Location: <a href="https://maps.app.goo.gl/ZELAuXYDwwF1TAUJ6" class="inline-bloc text-orange-500 border border-white rounded-lg font-bold py-2 px-4"> 30334 112th PL SE Auburn WA 98092</a></p>
+            </div>
+            <form action="/rsvp" id="rsvp-form" method="POST" class="space-y-5 flex flex-col">
+                <label for="name">
+                    <input type="text" name="name" required placeholder="Your Name Here"/>
+                </label>
+                <div class="flex flex-col space-y-2">
+                    <label for="response">
+                        <input type="radio" name="response" value="accepted" required/> Accept
+                    </label>
+                    <label for="response">
+                        <input type="radio" name="response" value="declined"> Decline
+                    </label>
+                </div>
+                <button type="submit" class="p-4 border border-black rounded-md">Submit</button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
