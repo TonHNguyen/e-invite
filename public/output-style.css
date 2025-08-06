@@ -2117,6 +2117,16 @@ video {
   vertical-align: super;
 }
 
+.text-6xl {
+  font-size: 3.75rem;
+  line-height: 1;
+}
+
+.text-9xl {
+  font-size: 8rem;
+  line-height: 1;
+}
+
 .font-bold {
   font-weight: 700;
 }
@@ -2682,6 +2692,10 @@ video {
       max-width: 3840px;
     }
   }
+}
+
+.hover\:border-none:hover {
+  border-style: none;
 }
 
 .hover\:bg-\[\#778B7A\]:hover {
