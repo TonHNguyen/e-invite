@@ -37,18 +37,15 @@ export default async function handler(req, res) {
   }
 
   // Send the notification email
-  try {
-    const info = await transporter.sendMail({
-      from:    process.env.SMTP_FROM,     // e.g. huutonau@gmail.com
-      to:      process.env.MY_EMAIL,      // where you want to receive RSVPs
-      subject: `RSVP: ${name} — ${response}`,
-      text:    `${name} has ${response} your invite at ${timestamp}.`
-    });
-    console.log('📧 Email sent:', info.response);
-  } catch (err) {
-    console.error('✉️  Email send error:', err);
-    return res.status(502).json({ error: 'Failed to send email' });
-  }
+// Inside your try/catch around sendMail()
+try {
+  const info = await transporter.sendMail({ /* … */ });
+  console.log('📧 Email sent:', info.response);
+} catch (err) {
+  console.error('✉️  Detailed sendMail error:', err);
+  return res.status(502).json({ error: 'Failed to send email' });
+}
+
 
   // All done
   return res.status(200).json({
