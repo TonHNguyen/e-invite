@@ -31,8 +31,6 @@ export default async function handler(req, res) {
     });
 
     // Optional: verify connection (comment out in production for speed)
-    await transporter.verify();
-    console.log('✅ SMTP is ready');
   } catch (err) {
     console.error('✉️  SMTP configuration error:', err);
     return res.status(500).json({ error: 'Email setup failed' });
