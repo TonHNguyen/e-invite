@@ -1,54 +1,81 @@
 // api/rsvp.js
+import { google } from 'googleapis';
+
+// Pull your sheet ID and service‐account JSON from env
+const SPREADSHEET_ID = process.env.SHEET_ID;
+const SA_JSON        = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+
+async function getSheetsClient() {
+  const auth = new google.auth.JWT({
+    email: SA_JSON.client_email,
+    key:   SA_JSON.private_key,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets']
+  });
+  await auth.authorize();
+  return google.sheets({ version: 'v4', auth });
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    return res.status(405).send('Method Not Allowed');
+    return res.status(405).end();
   }
-
   const { name, response } = req.body || {};
-  if (typeof name !== 'string' || !['accepted', 'declined'].includes(response)) {
+  if (!name || !['accepted','declined'].includes(response)) {
     return res.status(400).json({ error: 'Invalid payload' });
   }
 
   const timestamp = new Date().toISOString();
-  console.log(`RSVP → ${name} : ${response} @ ${timestamp}`);
-
-  // Lazy‐load nodemailer so we don’t pay the cost on cold start if not used
-  const nodemailer = await import('nodemailer').then(m => m.default);
-
-  let transporter;
+  let sheets;
   try {
-    transporter = nodemailer.createTransport({
-      host:   'smtp.gmail.com',
-      port:   587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER, // huutonau@gmail.com
-        pass: process.env.SMTP_PASS  // your 16-char App Password
+    sheets = await getSheetsClient();
+  } catch (err) {
+    console.error('Sheets auth error:', err);
+    return res.status(500).json({ error: 'Sheets auth failed' });
+  }
+
+  // 1) Append the row to columns A–C
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'A:C',
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[timestamp, name, response]]
       }
     });
-    // (Optional) verify only in development
-    if (process.env.NODE_ENV !== 'production') {
-      await transporter.verify();
-      console.log('✅ Gmail SMTP verified');
-    }
   } catch (err) {
-    console.error('SMTP setup error:', err);
-    return res.status(500).json({ error: 'Email setup failed' });
+    console.error('Sheets append error:', err);
+    return res.status(502).json({ error: 'Failed to append row' });
   }
 
+  // 2) Read back all responses to compute totals
+  let data;
   try {
-    const info = await transporter.sendMail({
-      from:    process.env.SMTP_FROM,   // huutonau@gmail.com
-      to:      process.env.MY_EMAIL,    // huutonau@gmail.com
-      subject: `RSVP: ${name} — ${response}`,
-      text:    `${name} has ${response} your invite at ${timestamp}.`
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'A2:C'   // skip header row
     });
-    console.log('📧 Email sent:', info.response);
-    return res.status(200).json({ ok: true, timestamp });
+    data = result.data.values || [];
   } catch (err) {
-    console.error('Email send error:', err);
-    return res.status(502).json({ error: 'Failed to send email' });
+    console.error('Sheets read error:', err);
+    return res.status(502).json({ error: 'Failed to read rows' });
   }
+
+  // 3) Tally
+  const totals = data.reduce(
+    (t, row) => {
+      if (row[2] === 'accepted') t.accepted++;
+      else if (row[2] === 'declined') t.declined++;
+      return t;
+    },
+    { accepted: 0, declined: 0 }
+  );
+
+  return res.status(200).json({
+    ok: true,
+    timestamp,
+    totals,
+    totalResponses: data.length
+  });
 }
