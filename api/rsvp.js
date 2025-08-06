@@ -1,41 +1,61 @@
 // api/rsvp.js
-import { writeFileSync, existsSync, appendFileSync, readFileSync } from 'fs';
-import { join } from 'path';
+import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
+  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
 
-  try {
-    const { name, response } = req.body;
-    const ts = new Date().toISOString();
-
-    // Paths (ephemeral on Vercel)
-    const csvPath = join(process.cwd(), 'responses.csv');
-    const jsonPath = join(process.cwd(), 'summary.json');
-
-    // 1) CSV
-    if (!existsSync(csvPath)) {
-      writeFileSync(csvPath, 'timestamp,name,response\n');
-    }
-    appendFileSync(csvPath, `"${ts}","${name}","${response}"\n`);
-
-    // 2) JSON totals
-    if (!existsSync(jsonPath)) {
-      writeFileSync(jsonPath, JSON.stringify({ accepted: 0, declined: 0 }));
-    }
-    const summary = JSON.parse(readFileSync(jsonPath));
-    summary[response]++;
-    writeFileSync(jsonPath, JSON.stringify(summary));
-
-    // 3) (Optional) Email – requires setting env vars in Vercel dashboard
-    // import nodemailer, createTransport using process.env.SMTP_*, then:
-    // await transporter.sendMail({ from, to, subject, text });
-
-    return res.status(200).json({ ok: true, summary });
-  } catch (err) {
-    console.error('❌ Function error:', err);
-    return res.status(500).json({ error: 'Internal Server Error' });
+  // Parse and validate payload
+  const { name, response } = req.body || {};
+  if (typeof name !== 'string' || !['accepted', 'declined'].includes(response)) {
+    return res.status(400).json({ error: 'Invalid payload' });
   }
+
+  // Timestamp for email/text
+  const timestamp = new Date().toISOString();
+  console.log(`RSVP received → ${name} : ${response} @ ${timestamp}`);
+
+  // Set up your SMTP transporter (configured via Vercel env vars)
+  let transporter;
+  try {
+    transporter = nodemailer.createTransport({
+      host:     process.env.SMTP_HOST,
+      port:     Number(process.env.SMTP_PORT),
+      secure:   process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+
+    // Optional: verify connection (comment out in production for speed)
+    await transporter.verify();
+    console.log('✅ SMTP is ready');
+  } catch (err) {
+    console.error('✉️  SMTP configuration error:', err);
+    return res.status(500).json({ error: 'Email setup failed' });
+  }
+
+  // Send the notification email
+  try {
+    const info = await transporter.sendMail({
+      from:    process.env.SMTP_FROM,     // e.g. huutonau@gmail.com
+      to:      process.env.MY_EMAIL,      // where you want to receive RSVPs
+      subject: `RSVP: ${name} — ${response}`,
+      text:    `${name} has ${response} your invite at ${timestamp}.`
+    });
+    console.log('📧 Email sent:', info.response);
+  } catch (err) {
+    console.error('✉️  Email send error:', err);
+    return res.status(502).json({ error: 'Failed to send email' });
+  }
+
+  // All done
+  return res.status(200).json({
+    ok: true,
+    message: `Thanks ${name}, your ${response} has been recorded.`,
+    timestamp
+  });
 }
