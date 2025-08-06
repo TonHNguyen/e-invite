@@ -1,6 +1,6 @@
 document
   .getElementById('rsvp-form')
-  .addEventListener('submit', async function(e) {
+  .addEventListener('submit', async function (e) {
     e.preventDefault();
     const form = e.target;
     const data = {
@@ -8,11 +8,14 @@ document
       response: form.response.value
     };
     try {
-      const res = await fetch('/rsvp', {
+      // public/script.js
+
+      const res = await fetch('/api/rsvp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ name: form.name.value.trim(), response: form.response.value })
       });
+
       if (res.ok) {
         alert('Thanks for your response!');
         form.reset();
