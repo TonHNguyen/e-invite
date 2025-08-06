@@ -865,6 +865,10 @@ video {
   height: 2rem;
 }
 
+.h-\[80\%\] {
+  height: 80%;
+}
+
 .h-screen {
   height: 100vh;
 }
@@ -883,10 +887,6 @@ video {
 
 .w-\[weird-and-invalid\] {
   width: weird-and-invalid;
-}
-
-.w-auto {
-  width: auto;
 }
 
 .flex-shrink {
